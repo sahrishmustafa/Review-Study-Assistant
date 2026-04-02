@@ -41,28 +41,46 @@ A production-grade **AI-powered Systematic Literature Review** platform with:
 
 ## How to Run
 
-### Backend
+### 1. Prerequisites
+- **Docker** and **Docker Compose** (for PostgreSQL)
+- **Python** 3.11+
+- **Node.js** 20+
+
+### 2. Start the Database
 ```bash
-cd src/backend
-cp .env.example .env  # Edit with your API keys
+# From the project root — starts PostgreSQL 15 on port 5433
+docker compose up -d
+
+# Verify it's running
+docker ps | grep slr_postgres
+```
+
+### 3. Backend Setup
+```bash
+cd backend
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+
+# Initialize Database (create tables & seed default user)
+python3 init_db.py
+
+# Run the server
+PYTHONPATH=. python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # API docs → http://localhost:8000/docs
 ```
 
-### Frontend
+### 4. Frontend Setup
 ```bash
-cd src/frontend
+cd frontend
 npm install
 npm run dev
 # Dashboard → http://localhost:3000
 ```
-
-### Prerequisites
-- **PostgreSQL** running locally (or update `DATABASE_URL` in `.env`)
-- **Python 3.11+** and **Node.js 20+**
-- API keys for OpenAI/Anthropic (for LLM features)
-- Zotero API key (for sync features)
 
 ---
 
