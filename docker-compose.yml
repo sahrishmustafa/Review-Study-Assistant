@@ -1,0 +1,16 @@
+services:
+  slr_db:
+    image: postgres:15
+    container_name: slr_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: slr_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - slr_pgdata:/var/lib/postgresql/data
+
+volumes:
+  slr_pgdata:
