@@ -7,7 +7,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/slr_db"
+    DATABASE_URL: str = "postgresql://postgres:admin@localhost:5433/slr_db"
 
     # LLM
     GROQ_API_KEY: Optional[str] = None
