@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title=settings.APP_NAME,
     description="AI-Powered Systematic Literature Review Platform",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -28,15 +28,17 @@ app.add_middleware(
 
 # ── Register routers ─────────────────────────────────────────────
 
-from app.routers import papers, zotero, extraction, matrix, analytics, clusters, conflicts
+from app.routers import papers, zotero, extraction, matrix, screening, evaluation, synthesis, analytics, clusters
 
 app.include_router(papers.router, prefix="/api")
 app.include_router(zotero.router, prefix="/api")
-app.include_router(extraction.router, prefix="/api")
+app.include_router(extraction.router, prefix="/api")       # Kept for backward compat
 app.include_router(matrix.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
-app.include_router(clusters.router, prefix="/api")
-app.include_router(conflicts.router, prefix="/api")
+app.include_router(screening.router, prefix="/api")         # Phase 1: Coarse screening
+app.include_router(evaluation.router, prefix="/api")        # Phase 2: Deep evaluation
+app.include_router(synthesis.router, prefix="/api")          # Phase 3: EDA & Synthesis
+app.include_router(analytics.router, prefix="/api")         # Legacy analytics
+app.include_router(clusters.router, prefix="/api")          # Clustering
 
 
 # ── Health & Overview ─────────────────────────────────────────────
@@ -45,8 +47,14 @@ app.include_router(conflicts.router, prefix="/api")
 def root():
     return {
         "app": settings.APP_NAME,
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs",
+        "pipeline": [
+            "Phase 0: Document Processing",
+            "Phase 1: Programmatic Screening",
+            "Phase 2: LLM Evaluation",
+            "Phase 3: EDA & Synthesis",
+        ],
     }
 
 
@@ -59,7 +67,7 @@ def health():
 def overview():
     """Dashboard statistics."""
     from app.database import SessionLocal
-    from app.services.analytics_service import get_overview_stats
+    from app.services.synthesis_service import get_overview_stats
 
     db = SessionLocal()
     try:

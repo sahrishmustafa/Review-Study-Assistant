@@ -4,6 +4,7 @@ Papers API router — upload, list, get, update, delete papers.
 import os
 import uuid
 import shutil
+from typing import List
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -43,6 +44,40 @@ async def upload_paper(
     db.commit()
     db.refresh(paper)
     return paper
+
+
+@router.post("/upload/bulk", response_model=list[PaperResponse])
+async def upload_papers_bulk(
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
+    """Upload multiple PDFs at once and create paper records for each."""
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    created_papers = []
+
+    for file in files:
+        file_id = str(uuid.uuid4())
+        filename = f"{file_id}.pdf"
+        filepath = os.path.join(settings.UPLOAD_DIR, filename)
+
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+
+        paper = Paper(
+            title=file.filename.replace(".pdf", "") if file.filename else "Untitled",
+            pdf_path=filepath,
+            status=PaperStatus.PENDING.value,
+            user_id=DEFAULT_USER_ID,
+        )
+        db.add(paper)
+        db.flush()
+        created_papers.append(paper)
+
+    db.commit()
+    for p in created_papers:
+        db.refresh(p)
+
+    return created_papers
 
 
 @router.get("", response_model=PaperListResponse)
@@ -113,7 +148,7 @@ def get_paper_chunks(paper_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{paper_id}/process")
 def process_paper(paper_id: str, db: Session = Depends(get_db)):
-    """Trigger PDF parsing, chunking, and section classification for a paper."""
+    """Trigger PDF parsing, chunking, section classification, and embedding generation."""
     paper = db.query(Paper).filter(Paper.id == paper_id).first()
     if not paper:
         raise HTTPException(status_code=404, detail="Paper not found")
@@ -123,18 +158,29 @@ def process_paper(paper_id: str, db: Session = Depends(get_db)):
     from app.services.pdf_parser import parse_pdf
     from app.services.chunker import create_chunks
     from app.services.section_classifier import classify_sections
+    from app.services.vector_store import generate_embeddings, add_chunks as vs_add_chunks
 
-    # Parse PDF
+    # Step 1: Parse PDF
     pages = parse_pdf(paper.pdf_path)
 
-    # Create chunks
+    # Step 2: Create fixed-size overlapping chunks
     chunks = create_chunks(pages, paper.id)
 
-    # Classify sections
+    # Step 3: Classify sections (fill gaps in section detection)
     chunks = classify_sections(chunks)
 
-    # Save to DB
+    # Step 4: Save chunks to database
     from app.models.chunk import Chunk
+
+    # Clear existing chunks for this paper (re-processing)
+    db.query(Chunk).filter(Chunk.paper_id == paper.id).delete()
+    db.flush()
+
+    # Delete existing vector store data for this paper
+    from app.services.vector_store import delete_paper as vs_delete_paper
+    vs_delete_paper(paper.id)
+
+    db_chunks = []
     for chunk_data in chunks:
         chunk = Chunk(
             paper_id=paper.id,
@@ -144,8 +190,32 @@ def process_paper(paper_id: str, db: Session = Depends(get_db)):
             chunk_index=chunk_data["chunk_index"],
         )
         db.add(chunk)
+        db.flush()  # Generate the chunk ID
+        db_chunks.append(chunk)
+
+    # Step 5: Generate embeddings and store in vector DB
+    texts = [c.text for c in db_chunks]
+    if texts:
+        embeddings = generate_embeddings(texts)
+
+        # Prepare chunks for vector store (need chunk_id from DB)
+        vs_chunks = [
+            {
+                "chunk_id": db_chunks[i].id,
+                "text": db_chunks[i].text,
+                "section": db_chunks[i].section or "Other",
+                "page_number": db_chunks[i].page_number,
+                "chunk_index": db_chunks[i].chunk_index,
+            }
+            for i in range(len(db_chunks))
+        ]
+        vs_add_chunks(paper.id, vs_chunks, embeddings)
 
     paper.status = PaperStatus.PROCESSED.value
     db.commit()
 
-    return {"message": f"Processed {len(chunks)} chunks", "paper_id": paper.id}
+    return {
+        "message": f"Processed {len(db_chunks)} chunks with embeddings",
+        "paper_id": paper.id,
+        "chunks_count": len(db_chunks),
+    }

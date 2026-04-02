@@ -123,26 +123,71 @@ def call_llm_sync(
     max_tokens: int = 2000,
 ) -> str:
     """
-    Synchronous wrapper for LLM calls (for use in non-async contexts).
+    Synchronous implementation for LLM calls (avoids event loop issues).
     """
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    asyncio.run,
-                    call_llm(prompt, system_prompt, model, temperature, max_tokens),
-                )
-                return future.result()
-        return loop.run_until_complete(
-            call_llm(prompt, system_prompt, model, temperature, max_tokens)
-        )
-    except RuntimeError:
-        return asyncio.run(
-            call_llm(prompt, system_prompt, model, temperature, max_tokens)
-        )
+    provider = settings.LLM_PROVIDER
+    model = model or settings.LLM_MODEL
+
+    if provider == "openai":
+        return _call_openai_sync(prompt, system_prompt, model, temperature, max_tokens)
+    elif provider == "anthropic":
+        return _call_anthropic_sync(prompt, system_prompt, model, temperature, max_tokens)
+    elif provider == "groq":
+        return _call_groq_sync(prompt, system_prompt, model, temperature, max_tokens)
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
+
+
+def _call_openai_sync(
+    prompt: str, system_prompt: str, model: str,
+    temperature: float, max_tokens: int,
+) -> str:
+    from openai import OpenAI
+    client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return response.choices[0].message.content
+
+
+def _call_anthropic_sync(
+    prompt: str, system_prompt: str, model: str,
+    temperature: float, max_tokens: int,
+) -> str:
+    from anthropic import Anthropic
+    client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    response = client.messages.create(
+        model=model or "claude-3-5-sonnet-20241022",
+        max_tokens=max_tokens,
+        system=system_prompt,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
+    )
+    return response.content[0].text
+
+
+def _call_groq_sync(
+    prompt: str, system_prompt: str, model: str,
+    temperature: float, max_tokens: int,
+) -> str:
+    from groq import Groq
+    client = Groq(api_key=settings.GROQ_API_KEY)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return response.choices[0].message.content
 
 
 def extract_json_from_response(response: str) -> dict | list:

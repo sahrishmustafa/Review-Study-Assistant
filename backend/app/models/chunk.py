@@ -13,7 +13,7 @@ class Chunk(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    paper_id: Mapped[str] = mapped_column(String(36), ForeignKey("papers.id"), nullable=False)
+    paper_id: Mapped[str] = mapped_column(String(36), ForeignKey("papers.id", ondelete="CASCADE"), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     section: Mapped[str | None] = mapped_column(String(50), nullable=True)

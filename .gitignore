@@ -16,6 +16,7 @@ env/
 
 # ── Uploads / data ───────────────────────────────────────────────
 backend/uploads/
+backend/chroma_data/
 
 # ── Next.js ──────────────────────────────────────────────────────
 frontend/.next/

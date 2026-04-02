@@ -23,14 +23,19 @@ export default function PapersPage() {
   useEffect(load, [filter]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     setUploading(true);
     try {
-      await papersApi.upload(file);
+      if (files.length === 1) {
+        await papersApi.upload(files[0]);
+      } else {
+        await papersApi.uploadBulk(Array.from(files));
+      }
       load();
     } catch { alert("Upload failed"); }
     setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleProcess = async (id: string) => {
@@ -38,6 +43,15 @@ export default function PapersPage() {
       await papersApi.process(id);
       load();
     } catch { alert("Processing failed"); }
+  };
+
+  const handleProcessAll = async () => {
+    const pending = papers.filter((p) => p.status === "pending");
+    if (pending.length === 0) { alert("No pending papers to process"); return; }
+    for (const p of pending) {
+      try { await papersApi.process(p.id); } catch {}
+    }
+    load();
   };
 
   const handleDelete = async (id: string) => {
@@ -61,9 +75,12 @@ export default function PapersPage() {
           <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{total} papers in library</p>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <input type="file" ref={fileRef} accept=".pdf" onChange={handleUpload} style={{ display: "none" }} />
+          <input type="file" ref={fileRef} accept=".pdf" multiple onChange={handleUpload} style={{ display: "none" }} />
           <button className="btn-primary" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? "Uploading..." : "📥 Upload PDF"}
+            {uploading ? "Uploading..." : "📥 Upload PDFs"}
+          </button>
+          <button className="btn-secondary" onClick={handleProcessAll}>
+            ⚙️ Process All Pending
           </button>
         </div>
       </div>

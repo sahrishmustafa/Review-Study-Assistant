@@ -8,6 +8,8 @@ from app.models.chunk import Chunk
 from app.models.extraction import ExtractionSchema, ExtractionResult
 from app.models.matrix import Matrix
 from app.models.audit_log import AuditLog
+from app.models.screening import ScreeningCriteria, ScreeningResult
+from app.models.evaluation import ResearchQuestion, EvaluationResult
 
 __all__ = [
     "User",
@@ -19,4 +21,8 @@ __all__ = [
     "ExtractionResult",
     "Matrix",
     "AuditLog",
+    "ScreeningCriteria",
+    "ScreeningResult",
+    "ResearchQuestion",
+    "EvaluationResult",
 ]

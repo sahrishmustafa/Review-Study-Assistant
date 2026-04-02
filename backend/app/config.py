@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "llama-3.1-8b-instant"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
+    # Vector Store
+    CHROMA_PERSIST_DIR: str = "./chroma_data"
+    VECTOR_SEARCH_TOP_K: int = 5
+
+    # Pipeline Thresholds
+    SCREENING_THRESHOLD: float = 0.6
+    EVALUATION_THRESHOLD: float = 0.7
+
     # Zotero
     ZOTERO_API_KEY: Optional[str] = None
     ZOTERO_LIBRARY_ID: Optional[str] = None

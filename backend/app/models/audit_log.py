@@ -16,7 +16,7 @@ class AuditLog(Base):
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     paper_id: Mapped[str | None] = mapped_column(
-        String(36), ForeignKey("papers.id"), nullable=True
+        String(36), ForeignKey("papers.id", ondelete="CASCADE"), nullable=True
     )
     prompt_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     model_used: Mapped[str | None] = mapped_column(String(100), nullable=True)

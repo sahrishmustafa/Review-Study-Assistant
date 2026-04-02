@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: "📊" },
   { href: "/papers", label: "Papers", icon: "📄" },
-  { href: "/extraction", label: "Extraction", icon: "🔍" },
+  { href: "/screening", label: "Screening", icon: "🔍" },
+  { href: "/evaluation", label: "Evaluation", icon: "🧪" },
+  { href: "/synthesis", label: "Synthesis", icon: "📈" },
+  { href: "/extraction", label: "Extraction", icon: "⚙️" },
   { href: "/matrix", label: "Matrix", icon: "📋" },
-  { href: "/analytics", label: "Analytics", icon: "📈" },
-  { href: "/clusters", label: "Clusters", icon: "🧬" },
-  { href: "/conflicts", label: "Conflicts", icon: "⚠️" },
   { href: "/zotero", label: "Zotero", icon: "📚" },
 ];
 
@@ -41,6 +41,13 @@ export default function Sidebar() {
         </h1>
         <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, letterSpacing: "0.05em" }}>
           SYSTEMATIC LITERATURE REVIEW
+        </p>
+      </div>
+
+      {/* Pipeline label */}
+      <div style={{ padding: "0 24px", marginBottom: 8 }}>
+        <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          Pipeline
         </p>
       </div>
 
@@ -75,7 +82,7 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div style={{ padding: "16px 24px", borderTop: "1px solid var(--border-color)" }}>
-        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>v1.0.0 • AI-Powered</p>
+        <p style={{ fontSize: 11, color: "var(--text-muted)" }}>v2.0.0 • AI-Powered</p>
       </div>
     </aside>
   );

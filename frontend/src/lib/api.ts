@@ -45,6 +45,13 @@ export const papersApi = {
     if (!res.ok) throw new Error("Upload failed");
     return res.json() as Promise<Paper>;
   },
+  uploadBulk: async (files: File[]) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+    const res = await fetch(`${API_BASE}/papers/upload/bulk`, { method: "POST", body: form });
+    if (!res.ok) throw new Error("Bulk upload failed");
+    return res.json() as Promise<Paper[]>;
+  },
   process: (id: string) => request<{ message: string }>(`/papers/${id}/process`, { method: "POST" }),
   updateStatus: (id: string, status: string, reason?: string) =>
     request<Paper>(`/papers/${id}`, {
@@ -65,7 +72,161 @@ export interface Chunk {
   chunk_index: number;
 }
 
-// ── Extraction ────────────────────────────────────────────────────
+// ── Screening (Phase 1) ──────────────────────────────────────────
+
+export interface ScreeningCriteria {
+  id: string;
+  name: string;
+  description: string | null;
+  criteria_definition: Record<string, any>;
+  threshold: number;
+  created_at: string;
+}
+
+export interface ScreeningResult {
+  paper_id: string;
+  title: string;
+  filter_scores: Record<string, number>;
+  final_score: number;
+  passed: boolean;
+  exclusion_reason: string | null;
+}
+
+export interface ScreeningRunResponse {
+  message: string;
+  total_screened: number;
+  passed: number;
+  failed: number;
+  results: ScreeningResult[];
+}
+
+export const screeningApi = {
+  createCriteria: (data: { name: string; description?: string; criteria_definition: Record<string, any>; threshold?: number }) =>
+    request<ScreeningCriteria>("/screening/criteria", { method: "POST", body: JSON.stringify(data) }),
+  listCriteria: () => request<ScreeningCriteria[]>("/screening/criteria"),
+  deleteCriteria: (id: string) => request<{ message: string }>(`/screening/criteria/${id}`, { method: "DELETE" }),
+  run: (criteriaId: string, paperIds?: string[]) =>
+    request<ScreeningRunResponse>("/screening/run", {
+      method: "POST",
+      body: JSON.stringify({ criteria_id: criteriaId, paper_ids: paperIds }),
+    }),
+  getResults: (criteriaId?: string, passedOnly?: boolean) => {
+    const params = new URLSearchParams();
+    if (criteriaId) params.set("criteria_id", criteriaId);
+    if (passedOnly) params.set("passed_only", "true");
+    return request<ScreeningResult[]>(`/screening/results?${params}`);
+  },
+};
+
+// ── Evaluation (Phase 2) ─────────────────────────────────────────
+
+export interface ResearchQuestion {
+  id: string;
+  question_text: string;
+  description: string | null;
+  weight: number;
+  created_at: string;
+}
+
+export interface EvaluationResultDetail {
+  question: string;
+  answer: string | null;
+  score: number;
+  source_quote: string | null;
+  source_page: number | null;
+  source_chunk_id: string | null;
+  reasoning: string | null;
+}
+
+export interface PaperEvaluation {
+  paper_id: string;
+  title: string;
+  final_score: number;
+  passed: boolean;
+  evaluations: EvaluationResultDetail[];
+}
+
+export interface EvaluationRunResponse {
+  message: string;
+  total_evaluated: number;
+  passed: number;
+  failed: number;
+  results: PaperEvaluation[];
+}
+
+export interface EvaluationSummaryItem {
+  paper_id: string;
+  title: string;
+  final_score: number;
+  passed: boolean;
+  rq_count: number;
+}
+
+export const evaluationApi = {
+  createQuestion: (data: { question_text: string; description?: string; weight?: number }) =>
+    request<ResearchQuestion>("/evaluation/questions", { method: "POST", body: JSON.stringify(data) }),
+  listQuestions: () => request<ResearchQuestion[]>("/evaluation/questions"),
+  deleteQuestion: (id: string) => request<{ message: string }>(`/evaluation/questions/${id}`, { method: "DELETE" }),
+  run: (paperIds: string[], questionIds?: string[], applyThreshold?: boolean) =>
+    request<EvaluationRunResponse>("/evaluation/run", {
+      method: "POST",
+      body: JSON.stringify({ paper_ids: paperIds, question_ids: questionIds, apply_threshold: applyThreshold ?? true }),
+    }),
+  getResults: (paperId: string) => request<PaperEvaluation>(`/evaluation/results/${paperId}`),
+  getSummary: () => request<EvaluationSummaryItem[]>("/evaluation/summary"),
+};
+
+// ── Synthesis (Phase 3) ──────────────────────────────────────────
+
+export interface SynthesisOverview {
+  total_papers: number;
+  pending_papers: number;
+  processed_papers: number;
+  included_papers: number;
+  excluded_papers: number;
+  total_evaluations: number;
+  total_screenings: number;
+  total_research_questions: number;
+}
+
+export interface ClusterResult {
+  cluster_id: number;
+  label: string;
+  paper_ids: string[];
+  paper_titles: string[];
+  size: number;
+}
+
+export const synthesisApi = {
+  overview: () => request<SynthesisOverview>("/synthesis/overview"),
+  aggregate: (paperIds?: string[]) =>
+    request<{ fields: string[]; rows: any[]; total_papers: number }>("/synthesis/aggregate", {
+      method: "POST",
+      body: JSON.stringify({ paper_ids: paperIds }),
+    }),
+  methodsDistribution: (paperIds?: string[]) =>
+    request<{ data: { label: string; count: number }[] }>("/synthesis/methods-distribution", {
+      method: "POST",
+      body: JSON.stringify({ paper_ids: paperIds }),
+    }),
+  yearTrends: (paperIds?: string[]) =>
+    request<{ data: { year: number; count: number }[] }>("/synthesis/year-trends", {
+      method: "POST",
+      body: JSON.stringify({ paper_ids: paperIds }),
+    }),
+  limitations: (paperIds?: string[]) =>
+    request<{ data: any[] }>("/synthesis/limitations", {
+      method: "POST",
+      body: JSON.stringify({ paper_ids: paperIds }),
+    }),
+  patterns: (numClusters: number = 5, paperIds?: string[]) =>
+    request<ClusterResult[]>("/synthesis/patterns", {
+      method: "POST",
+      body: JSON.stringify({ num_clusters: numClusters, paper_ids: paperIds }),
+    }),
+};
+
+// ── Extraction (Legacy) ──────────────────────────────────────────
 
 export interface ExtractionSchema {
   id: string;
@@ -122,7 +283,7 @@ export const matrixApi = {
   get: (id: string) => request<Matrix>(`/matrix/${id}`),
 };
 
-// ── Analytics ─────────────────────────────────────────────────────
+// ── Analytics (Legacy) ───────────────────────────────────────────
 
 export const analyticsApi = {
   methodsFrequency: () => request<{ data: { label: string; count: number }[] }>("/analytics/methods-frequency"),
@@ -132,7 +293,7 @@ export const analyticsApi = {
   overview: () => request<any>("/overview"),
 };
 
-// ── Clusters ──────────────────────────────────────────────────────
+// ── Clusters (Legacy) ────────────────────────────────────────────
 
 export interface Cluster { cluster_id: number; label: string; paper_ids: string[]; size: number; }
 
@@ -143,19 +304,6 @@ export const clustersApi = {
       body: JSON.stringify({ num_clusters: numClusters }),
     }),
   get: () => request<Cluster[]>("/clusters"),
-};
-
-// ── Conflicts ─────────────────────────────────────────────────────
-
-export interface Conflict { topic: string; conflict: boolean; papers: any[]; details: string; }
-
-export const conflictsApi = {
-  detect: (fieldName?: string, schemaId?: string) =>
-    request<Conflict[]>("/conflicts/detect", {
-      method: "POST",
-      body: JSON.stringify({ field_name: fieldName, schema_id: schemaId }),
-    }),
-  get: () => request<Conflict[]>("/conflicts"),
 };
 
 // ── Zotero ────────────────────────────────────────────────────────
