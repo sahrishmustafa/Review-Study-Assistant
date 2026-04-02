@@ -1,0 +1,36 @@
+"""
+Application configuration loaded from environment variables.
+"""
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class Settings(BaseSettings):
+    # Database
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/slr_db"
+
+    # LLM
+    GROQ_API_KEY: Optional[str] = None
+    LLM_PROVIDER: str = "groq"
+    LLM_MODEL: str = "llama-3.1-8b-instant"
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+
+    # Zotero
+    ZOTERO_API_KEY: Optional[str] = None
+    ZOTERO_LIBRARY_ID: Optional[str] = None
+    ZOTERO_LIBRARY_TYPE: str = "user"
+
+    # Storage
+    UPLOAD_DIR: str = "./uploads"
+
+    # App
+    APP_NAME: str = "SLR Platform"
+    DEBUG: bool = False
+    CORS_ORIGINS: str = "http://localhost:3000"
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
+settings = Settings()

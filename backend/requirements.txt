@@ -1,0 +1,31 @@
+# Core
+fastapi>=0.115.0
+uvicorn[standard]>=0.31.1
+python-multipart>=0.0.9
+python-dotenv>=1.0.1
+
+# Database
+sqlalchemy>=2.0.27
+psycopg2-binary>=2.9.9
+alembic>=1.13.1
+
+# PDF Processing
+PyMuPDF>=1.23.21
+tiktoken>=0.6.0
+
+# AI / LLM
+groq>=0.9.0
+sentence-transformers>=2.7.0
+numpy>=1.26.4
+faiss-cpu>=1.7.4
+scikit-learn>=1.6.0
+
+# Zotero
+pyzotero>=1.5.18
+
+# Utilities
+pydantic>=2.11.0
+pydantic-settings>=2.5.2
+httpx>=0.28.1
+aiofiles>=23.2.1
+uuid6==2024.1.12
