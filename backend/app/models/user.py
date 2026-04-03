@@ -20,6 +20,11 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    # Zotero Config (stored per-user for multi-tenancy)
+    zotero_api_key: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    zotero_library_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    zotero_library_type: Mapped[str] = mapped_column(String(50), default="user")
+
     # Relationships
     papers = relationship("Paper", back_populates="user", lazy="dynamic")
     extraction_schemas = relationship("ExtractionSchema", back_populates="user", lazy="dynamic")

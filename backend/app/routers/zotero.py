@@ -21,22 +21,34 @@ class ZoteroSyncRequest(BaseModel):
 
 
 @router.post("/connect")
-def connect_zotero(req: ZoteroConnectRequest):
-    """Validate and store Zotero API credentials."""
+def connect_zotero(req: ZoteroConnectRequest, db: Session = Depends(get_db)):
+    """Validate and store Zotero API credentials in the db."""
     from app.services.zotero_service import validate_connection
+    from app.models.user import User
     try:
         result = validate_connection(req.api_key, req.library_id, req.library_type)
+        
+        user_id = "00000000-0000-0000-0000-000000000001"
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            user.zotero_api_key = req.api_key
+            user.zotero_library_id = req.library_id
+            user.zotero_library_type = req.library_type
+            db.commit()
+
         return {"message": "Connected successfully", "username": result.get("username", "Unknown")}
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=400, detail=f"Connection failed: {str(e)}")
 
 
 @router.get("/collections")
-def list_collections():
+def list_collections(db: Session = Depends(get_db)):
     """List Zotero collections."""
     from app.services.zotero_service import get_collections
+    user_id = "00000000-0000-0000-0000-000000000001"
     try:
-        collections = get_collections()
+        collections = get_collections(db, user_id)
         return {"collections": collections}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

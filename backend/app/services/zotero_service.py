@@ -11,14 +11,16 @@ from app.models.paper import Paper, PaperStatus
 from app.models.zotero_mapping import ZoteroMapping
 
 
-def _get_zotero_client(api_key: str = None, library_id: str = None, library_type: str = None):
+def _get_zotero_client(api_key: str, library_id: str, library_type: str):
     """Create a pyzotero client."""
     from pyzotero import zotero
+    if not api_key or not library_id:
+        raise ValueError("Zotero credentials not configured.")
 
     return zotero.Zotero(
-        library_id or settings.ZOTERO_LIBRARY_ID,
-        library_type or settings.ZOTERO_LIBRARY_TYPE,
-        api_key or settings.ZOTERO_API_KEY,
+        library_id,
+        library_type,
+        api_key,
     )
 
 
@@ -30,9 +32,14 @@ def validate_connection(api_key: str, library_id: str, library_type: str) -> dic
     return {"username": key_info.get("username", "Unknown"), "access": key_info}
 
 
-def get_collections() -> list[dict]:
+def get_collections(db: Session, user_id: str) -> list[dict]:
     """Fetch all Zotero collections."""
-    zot = _get_zotero_client()
+    from app.models.user import User
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.zotero_api_key or not user.zotero_library_id:
+        raise ValueError("Zotero credentials not configured for this user.")
+
+    zot = _get_zotero_client(user.zotero_api_key, user.zotero_library_id, user.zotero_library_type)
     collections = zot.collections()
     return [
         {
@@ -51,10 +58,14 @@ def sync_papers(
 ) -> dict:
     """
     Sync papers from Zotero into the database.
-    Supports incremental sync via last_synced_at.
     """
-    zot = _get_zotero_client()
     user_id = "00000000-0000-0000-0000-000000000001"  # Default user
+    from app.models.user import User
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.zotero_api_key or not user.zotero_library_id:
+        raise ValueError("Zotero credentials not configured for this user.")
+
+    zot = _get_zotero_client(user.zotero_api_key, user.zotero_library_id, user.zotero_library_type)
 
     # Fetch items
     if collection_key:
@@ -123,7 +134,7 @@ def sync_papers(
             # Create mapping
             mapping = ZoteroMapping(
                 zotero_item_key=item_key,
-                zotero_library_id=settings.ZOTERO_LIBRARY_ID or "",
+                zotero_library_id=user.zotero_library_id,
                 paper_id=paper.id,
             )
             db.add(mapping)
