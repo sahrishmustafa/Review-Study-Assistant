@@ -21,7 +21,8 @@ def _get_chroma_client() -> chromadb.PersistentClient:
     """Return (or create) a persistent ChromaDB client."""
     global _chroma_client
     if _chroma_client is None:
-        persist_dir = settings.CHROMA_PERSIST_DIR
+        # chroma_persist_dir could be relative, ensure absolute to avoid KeyError on reload
+        persist_dir = os.path.abspath(settings.CHROMA_PERSIST_DIR)
         os.makedirs(persist_dir, exist_ok=True)
         _chroma_client = chromadb.PersistentClient(
             path=persist_dir,
