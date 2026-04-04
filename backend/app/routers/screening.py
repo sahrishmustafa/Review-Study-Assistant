@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.screening import ScreeningCriteria, ScreeningResult
 from app.schemas.screening import (
-    ScreeningCriteriaCreate, ScreeningCriteriaResponse,
+    ScreeningCriteriaCreate, ScreeningCriteriaUpdate, ScreeningCriteriaResponse,
     ScreeningRunRequest, ScreeningRunResponse, ScreeningResultResponse,
 )
 
@@ -45,6 +45,24 @@ def get_criteria(criteria_id: str, db: Session = Depends(get_db)):
     ).first()
     if not criteria:
         raise HTTPException(status_code=404, detail="Criteria not found")
+    return criteria
+
+
+@router.patch("/criteria/{criteria_id}", response_model=ScreeningCriteriaResponse)
+def update_criteria(criteria_id: str, req: ScreeningCriteriaUpdate, db: Session = Depends(get_db)):
+    """Update existing screening criteria."""
+    criteria = db.query(ScreeningCriteria).filter(
+        ScreeningCriteria.id == criteria_id
+    ).first()
+    if not criteria:
+        raise HTTPException(status_code=404, detail="Criteria not found")
+    
+    update_data = req.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(criteria, key, value)
+    
+    db.commit()
+    db.refresh(criteria)
     return criteria
 
 

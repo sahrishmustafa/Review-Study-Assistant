@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Pipeline Thresholds
     SCREENING_THRESHOLD: float = 0.6
-    EVALUATION_THRESHOLD: float = 0.7
+    EVALUATION_THRESHOLD: float = 0.55
 
     # Zotero variables moved to User database model for multi-tenancy.
 

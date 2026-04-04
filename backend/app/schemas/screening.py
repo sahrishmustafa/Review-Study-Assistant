@@ -13,6 +13,13 @@ class ScreeningCriteriaCreate(BaseModel):
     threshold: float = 0.6
 
 
+class ScreeningCriteriaUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    criteria_definition: Optional[dict] = None
+    threshold: Optional[float] = None
+
+
 class ScreeningCriteriaResponse(BaseModel):
     id: str
     name: str
