@@ -135,6 +135,33 @@ def delete_paper(paper_id: str, db: Session = Depends(get_db)):
     return {"message": "Paper deleted"}
 
 
+@router.delete("")
+def delete_all_papers(db: Session = Depends(get_db)):
+    """Delete all papers, their PDFs, and clear vector store."""
+    from app.services.vector_store import delete_all_chunks
+    
+    papers = db.query(Paper).all()
+    
+    # Remove PDF files
+    for paper in papers:
+        if paper.pdf_path and os.path.exists(paper.pdf_path):
+            try:
+                os.remove(paper.pdf_path)
+            except Exception:
+                pass
+                
+    # Clear vector store
+    delete_all_chunks()
+    
+    # Delete papers one by one to trigger ORM cascades
+    for paper in papers:
+        db.delete(paper)
+        
+    db.commit()
+    
+    return {"message": f"Deleted {len(papers)} papers"}
+
+
 @router.get("/{paper_id}/chunks", response_model=list[ChunkResponse])
 def get_paper_chunks(paper_id: str, db: Session = Depends(get_db)):
     """Get all chunks for a paper."""

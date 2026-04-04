@@ -17,6 +17,7 @@ import app.models.zotero_mapping
 
 def init_db():
     print("Creating tables...")
+    #Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     print("Tables created.")
 

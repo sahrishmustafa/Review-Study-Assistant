@@ -59,6 +59,7 @@ export const papersApi = {
       body: JSON.stringify({ status, exclusion_reason: reason }),
     }),
   delete: (id: string) => request<{ message: string }>(`/papers/${id}`, { method: "DELETE" }),
+  deleteAll: () => request<{ message: string }>("/papers", { method: "DELETE" }),
   getChunks: (id: string) => request<Chunk[]>(`/papers/${id}/chunks`),
 };
 

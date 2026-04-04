@@ -193,6 +193,18 @@ def delete_paper(paper_id: str) -> None:
         pass
 
 
+def delete_all_chunks() -> None:
+    """Remove all chunks from the vector store collection."""
+    collection = _get_collection()
+    try:
+        # Get all chunk IDs
+        results = collection.get(include=[])
+        if results["ids"]:
+            collection.delete(ids=results["ids"])
+    except Exception:
+        pass
+
+
 def get_paper_chunks(paper_id: str) -> list[dict]:
     """Retrieve all stored chunks for a paper from vector store."""
     collection = _get_collection()

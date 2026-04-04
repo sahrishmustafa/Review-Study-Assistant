@@ -62,6 +62,14 @@ export default function PapersPage() {
     } catch { alert("Delete failed"); }
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm("Are you absolutely sure? This will delete ALL papers and clear the vector store.")) return;
+    try {
+      await papersApi.deleteAll();
+      load();
+    } catch { alert("Bulk delete failed"); }
+  };
+
   const statusBadge = (s: string) => {
     const cls = `badge badge-${s}`;
     return <span className={cls}>{s}</span>;
@@ -81,6 +89,9 @@ export default function PapersPage() {
           </button>
           <button className="btn-secondary" onClick={handleProcessAll}>
             ⚙️ Process All Pending
+          </button>
+          <button className="btn-secondary" style={{ color: "var(--accent-rose)" }} onClick={handleDeleteAll}>
+            🗑️ Delete All
           </button>
         </div>
       </div>
