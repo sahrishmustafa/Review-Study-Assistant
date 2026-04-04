@@ -36,8 +36,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: "0 24px", marginBottom: 40 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
-          <span className="gradient-text">SLR</span>{" "}
-          <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Platform</span>
+          <span className="gradient-text">Scolar</span>{" "}
+          <span style={{ color: "var(--text-secondary)", fontWeight: 500 }}>Sense</span>
         </h1>
         <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, letterSpacing: "0.05em" }}>
           SYSTEMATIC LITERATURE REVIEW

@@ -3,7 +3,7 @@ import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "SLR Platform — AI-Powered Systematic Literature Review",
+  title: "Scolar Sense — AI-Powered Systematic Literature Review",
   description: "Structured, verifiable, multi-document analysis platform for systematic literature reviews",
 };
 

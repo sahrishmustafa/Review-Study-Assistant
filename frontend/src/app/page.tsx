@@ -75,7 +75,7 @@ export default function Dashboard() {
 
           {/* Pipeline flow */}
           <div className="glass-card" style={{ padding: 28, marginBottom: 24 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>🔄 SLR Pipeline</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 20 }}>🔄 Scolar Sense Pipeline</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
               {[
                 { phase: "Phase 0", label: "Document Processing", desc: "Upload & vectorize papers", href: "/papers", icon: "📥", color: "var(--accent-blue)" },
@@ -120,7 +120,7 @@ export default function Dashboard() {
       ) : (
         <div className="glass-card" style={{ padding: 40, textAlign: "center" }}>
           <p style={{ fontSize: 48, marginBottom: 12 }}>🚀</p>
-          <h2 style={{ fontWeight: 700, marginBottom: 8 }}>Welcome to SLR Platform</h2>
+          <h2 style={{ fontWeight: 700, marginBottom: 8 }}>Welcome to Scolar Sense</h2>
           <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
             Start by uploading papers or connecting to Zotero
           </p>
