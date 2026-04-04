@@ -103,6 +103,8 @@ export interface ScreeningRunResponse {
 export const screeningApi = {
   createCriteria: (data: { name: string; description?: string; criteria_definition: Record<string, any>; threshold?: number }) =>
     request<ScreeningCriteria>("/screening/criteria", { method: "POST", body: JSON.stringify(data) }),
+  updateCriteria: (id: string, data: { name?: string; description?: string; criteria_definition?: Record<string, any>; threshold?: number }) =>
+    request<ScreeningCriteria>(`/screening/criteria/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   listCriteria: () => request<ScreeningCriteria[]>("/screening/criteria"),
   deleteCriteria: (id: string) => request<{ message: string }>(`/screening/criteria/${id}`, { method: "DELETE" }),
   run: (criteriaId: string, paperIds?: string[]) =>

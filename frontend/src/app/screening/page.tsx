@@ -21,6 +21,7 @@ export default function ScreeningPage() {
   const [topicQuery, setTopicQuery] = useState("");
   const [paperTypes, setPaperTypes] = useState("");
   const [domain, setDomain] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -29,7 +30,7 @@ export default function ScreeningPage() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     const criteriaDef: Record<string, any> = {};
     if (yearFrom && yearTo) criteriaDef.year_range = [parseInt(yearFrom), parseInt(yearTo)];
     if (requiredKw.trim()) criteriaDef.required_keywords = requiredKw.split(",").map((s) => s.trim()).filter(Boolean);
@@ -39,16 +40,42 @@ export default function ScreeningPage() {
     if (domain.trim()) criteriaDef.domain = domain.trim();
 
     try {
-      const c = await screeningApi.createCriteria({ name, criteria_definition: criteriaDef, threshold });
-      setCriteria([...criteria, c]);
+      if (editingId) {
+        const updated = await screeningApi.updateCriteria(editingId, { name, criteria_definition: criteriaDef, threshold });
+        setCriteria(criteria.map((c) => (c.id === editingId ? updated : c)));
+        alert("Criteria updated");
+      } else {
+        const c = await screeningApi.createCriteria({ name, criteria_definition: criteriaDef, threshold });
+        setCriteria([...criteria, c]);
+        alert("Criteria created");
+      }
       setShowCreate(false);
+      setEditingId(null);
       resetForm();
-    } catch { alert("Failed to create criteria"); }
+    } catch (err: any) {
+      alert(`Failed to save criteria: ${err.message}`);
+    }
   };
 
   const resetForm = () => {
     setName(""); setThreshold(0.6); setYearFrom(""); setYearTo("");
     setRequiredKw(""); setExcludedKw(""); setTopicQuery(""); setPaperTypes(""); setDomain("");
+    setEditingId(null);
+  };
+
+  const handleEdit = (c: ScreeningCriteria) => {
+    setName(c.name);
+    setThreshold(c.threshold);
+    setYearFrom(c.criteria_definition.year_range?.[0]?.toString() || "");
+    setYearTo(c.criteria_definition.year_range?.[1]?.toString() || "");
+    setRequiredKw(c.criteria_definition.required_keywords?.join(", ") || "");
+    setExcludedKw(c.criteria_definition.excluded_keywords?.join(", ") || "");
+    setTopicQuery(c.criteria_definition.topic_query || "");
+    setPaperTypes(c.criteria_definition.paper_types?.join(", ") || "");
+    setDomain(c.criteria_definition.domain || "");
+    setEditingId(c.id);
+    setShowCreate(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleRun = async (criteriaId: string) => {
@@ -83,7 +110,7 @@ export default function ScreeningPage() {
           <h1 style={{ fontSize: 28, fontWeight: 800 }}><span className="gradient-text">Screening</span></h1>
           <p style={{ color: "var(--text-muted)", fontSize: 14 }}>Phase 1 — Define criteria and filter papers programmatically</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowCreate(!showCreate)}>
+        <button className="btn-primary" onClick={() => { if (showCreate) resetForm(); setShowCreate(!showCreate); }}>
           {showCreate ? "✕ Cancel" : "➕ New Criteria"}
         </button>
       </div>
@@ -91,7 +118,7 @@ export default function ScreeningPage() {
       {/* Create criteria form */}
       {showCreate && (
         <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
-          <h3 style={{ fontWeight: 700, marginBottom: 16 }}>Define Screening Criteria</h3>
+          <h3 style={{ fontWeight: 700, marginBottom: 16 }}>{editingId ? "Edit Screening Criteria" : "Define Screening Criteria"}</h3>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div>
@@ -137,7 +164,7 @@ export default function ScreeningPage() {
             </div>
           </div>
 
-          <button className="btn-primary" onClick={handleCreate} disabled={!name}>💾 Save Criteria</button>
+          <button className="btn-primary" onClick={handleSave} disabled={!name}>💾 {editingId ? "Update Criteria" : "Save Criteria"}</button>
         </div>
       )}
 
@@ -160,6 +187,9 @@ export default function ScreeningPage() {
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn-primary" onClick={() => handleRun(c.id)} disabled={running} style={{ fontSize: 13, padding: "8px 16px" }}>
                 {running ? "Running..." : "▶️ Run"}
+              </button>
+              <button className="btn-secondary" onClick={() => handleEdit(c)} style={{ fontSize: 13, padding: "8px 16px" }}>
+                ✏️ Edit
               </button>
               <button className="btn-secondary" onClick={() => handleDelete(c.id)} style={{ fontSize: 13, padding: "8px 16px", color: "var(--accent-rose)" }}>
                 🗑️
