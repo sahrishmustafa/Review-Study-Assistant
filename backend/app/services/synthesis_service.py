@@ -47,12 +47,22 @@ def get_overview_stats(db: Session) -> dict:
 def get_methodology_distribution(db: Session, paper_ids: list[str] | None = None) -> list[dict]:
     """
     Extract methodology distribution across papers using evaluation results.
-    Falls back to extraction results if available.
+
+    Strategy:
+    1. Prefer RQs whose text mentions "method" or "technique" or "approach".
+    2. If none found, fall back to ALL evaluation results (so the chart is
+       always populated once any evaluation has been run).
+    3. Last resort: legacy ExtractionResult table with field_name="methodology".
     """
-    # Try evaluation results first (look for methodology-related RQs)
-    rqs = db.query(ResearchQuestion).filter(
-        ResearchQuestion.question_text.ilike("%method%")
-    ).all()
+    # 1. Look for methodology-related RQs (broad keyword set)
+    method_keywords = ["%method%", "%technique%", "%approach%", "%design%"]
+    rqs = []
+    for kw in method_keywords:
+        rqs = db.query(ResearchQuestion).filter(
+            ResearchQuestion.question_text.ilike(kw)
+        ).all()
+        if rqs:
+            break
 
     if rqs:
         query = db.query(EvaluationResult).filter(
@@ -61,14 +71,25 @@ def get_methodology_distribution(db: Session, paper_ids: list[str] | None = None
         )
         if paper_ids:
             query = query.filter(EvaluationResult.paper_id.in_(paper_ids))
-
         results = query.all()
         if results:
-            # Use LLM to categorize methodologies
             answers = [r.answer for r in results if r.answer]
             return _categorize_values(answers, "methodology")
 
-    # Fallback: extraction results
+    # 2. Fallback: use ALL evaluation answers across every RQ
+    all_rqs = db.query(ResearchQuestion).all()
+    if all_rqs:
+        query = db.query(EvaluationResult).filter(
+            EvaluationResult.answer.isnot(None),
+        )
+        if paper_ids:
+            query = query.filter(EvaluationResult.paper_id.in_(paper_ids))
+        results = query.all()
+        if results:
+            answers = [r.answer for r in results if r.answer]
+            return _categorize_values(answers, "all")
+
+    # 3. Last resort: legacy ExtractionResult table
     query = (
         db.query(ExtractionResult.value, func.count(ExtractionResult.id))
         .filter(ExtractionResult.field_name == "methodology")
