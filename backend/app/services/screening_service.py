@@ -177,7 +177,9 @@ def _detect_paper_type_score(
         "slr": ["systematic literature review", "slr", "prisma", "systematic review"],
         "journal": ["journal", "article", "empirical study"],
         "conference": ["proceedings", "conference", "workshop", "symposium"],
+        "workshop": ["proceedings", "workshop", "conference", "symposium"],
         "book": ["book chapter", "book", "textbook", "monograph"],
+        "book_chapter": ["book chapter", "book", "textbook", "monograph"],
         "thesis": ["thesis", "dissertation"],
         "preprint": ["preprint", "arxiv", "biorxiv", "medrxiv"],
     }
